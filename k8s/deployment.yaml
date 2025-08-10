@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wsl-demo-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wsl-demo
+  template:
+    metadata:
+      labels:
+        app: wsl-demo
+    spec:
+      containers:
+        - name: wsl-demo
+          image: wsl-k8s-demo:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
