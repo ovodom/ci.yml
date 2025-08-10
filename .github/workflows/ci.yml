@@ -1,0 +1,50 @@
+name: CI with KinD and Kubernetes
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test-build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Set up KinD
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: gha-k8s-demo
+
+      - name: Build Docker image
+        run: |
+          docker build -t wsl-k8s-demo:latest .
+
+      - name: Load image into KinD
+        run: kind load docker-image wsl-k8s-demo:latest --name gha-k8s-demo
+
+      - name: Apply Kubernetes manifests
+        run: kubectl apply -f k8s/
+
+      - name: Wait for deployment
+        run: kubectl rollout status deployment/wsl-demo-deploy --timeout=60s
+
+      - name: Test service in cluster
+        run: |
+          kubectl port-forward service/wsl-demo-svc 30080:3000 &
+          sleep 5
+          curl -v http://localhost:30080
